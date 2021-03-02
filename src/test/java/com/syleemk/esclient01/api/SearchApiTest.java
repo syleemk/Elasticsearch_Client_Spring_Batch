@@ -1,4 +1,4 @@
-package com.syleemk.esclient01;
+package com.syleemk.esclient01.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.syleemk.esclient01.dto.NaverDto;
@@ -28,7 +28,7 @@ import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
 
 @SpringBootTest
-public class EsApiTest {
+public class SearchApiTest {
 
     @Autowired
     private RestHighLevelClient restHighLevelClient;
@@ -41,6 +41,8 @@ public class EsApiTest {
     void getTest() throws IOException {
         GetRequest request = new GetRequest("movie_search", "_doc", "ejzJqmkBjjM-ebDb8PsR");
         GetResponse response = restHighLevelClient.get(request, RequestOptions.DEFAULT);
+        
+
 
         if (response.isExists()) {
             long version = response.getVersion();
