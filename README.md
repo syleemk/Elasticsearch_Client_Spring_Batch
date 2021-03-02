@@ -56,6 +56,7 @@
     - 기본적으로 대명사같은 것은 없애도 될 듯
   
 ---
+
 # 스프링 배치 개념 정리
 출처 : https://jojoldu.tistory.com/324?category=902551
 
@@ -105,6 +106,28 @@ Spring Batch 는 Spring의 특성을 그대로 가져왔음
 
 ---
 
+# Spring Batch - Job, Step, Tasklet
+
+![image](https://user-images.githubusercontent.com/40594564/109670394-6beeab80-7bb6-11eb-8853-f2260b9efc45.png)
+출처 : https://jojoldu.tistory.com/325?category=902551
+
+- Spring Batch에서 Job은 하나의 배치 작업 단위
+- Job안에는 여러 Step이 존재하고, Step 안에 Tasklet 혹은 Reader & Processor & Writer 묶음이 존재
+- Tasklte은 어찌보면 Spring Mvc의 @Component, @Bean과 비슷한 역할이라 봐도됨
+- 명확한 역할은 없지만, 개발자가 지정한 커스텀 기능을 위한 단위 (Service, Controller와 달리... ㅋㅋ)
+
+---
+
+# Spring Batch - Job, Job_Instance, Job_Execution
+
+![image](https://user-images.githubusercontent.com/40594564/109674760-8591f200-7bba-11eb-9976-d85a3d1aefed.png)
+출처 : https://jojoldu.tistory.com/326?category=902551
+
+Job Instance는 Job Parameter 단위로 생성된다.
+동일한 Job Parameter 가진 Job Instance가 두 개 이상 생기지 않는다.
+
+---
+
 # Spring Batch - JobParameter와 Scope
 
 출처 : https://jojoldu.tistory.com/330?category=902551 
@@ -121,13 +144,15 @@ Job Parameter를 사용하기 위해서는 항상 **Spring Batch 전용 Scope**�
 
 ```@Value("#{jobParameters[파라미터명]}")```
 
-- @JobScope : Step 선언문에서 사용가능
-- @StepScope : Tasklet이나 ItemReader, ItemWriter, ItemProcessor에서 사용가능
+- @JobScope : Step 선언문에서 사용가능 (하나의 Job 실행시 마다 Bean 생성되는 Scope)
+- @StepScope : Tasklet이나 ItemReader, ItemWriter, ItemProcessor에서 사용가능 (하나의 Step 실행시마다 Bean 생성되는 Scope)
 
 ###  @StepScope & @JobScope 소개
 - Spring Batch는 @StepScope와 @JobScope라는 특별한 Bean Scope를 지원
 - Spring Bean의 기본 Scope는 Singleton이다.
-- 그러나 Spring Batch 컴포넌트 (Tasklet, ItemReader, ItemWriter, ItemProcessor 등)에 @StepScope를 사용하게 되면, Spring Batch가 Spring 컨테이너를 통해 지정된 **Step의 실행시점에 해당 컴포넌트를 Spring Bean으로 생성**
+- 그러나 Spring Batch 컴포넌트 (Tasklet, ItemReader, ItemWriter, ItemProcessor 등)에 @StepScope를 사용하게 되면, 
+  Spring Batch가 Spring 컨테이너를 통해 지정된 **Step의 실행시점에 해당 컴포넌트를 Spring Bean으로 생성**
+- 즉, 애플리케이션 실행시점에 싱글톤으로 하나 생성하는게 아니라, Step 하나 실행시마다 Bean 하나씩 생성하는 것
 - 마찬가지로 @JobScope는 **Job 실행시점**에 Bean이 생성된다.
 - 즉, **Bean의 생성 시점을 지정된 Scope가 실행되는 시점으로 지연**시킨다.
 
@@ -140,9 +165,27 @@ Job Parameter를 사용하기 위해서는 항상 **Spring Batch 전용 Scope**�
 #### Bean의 생성시점을 애플리케이션 실행 시점이 아닌, Step혹은 Job의 실행시점으로 지연시키면 얻는 장점은?
 - JobParameter의 Late Binding이 가능
   - 꼭 Application 실행시점이 아니더라도, Controller나 Service와 같은 **비즈니스 로직 처리단계에서 JobParameter를 할당** 가능
-- 동일한 컴포넌트를 병렬 혹은 동시에 사용할 때 유용
+- 동일한 컴포넌트를 병렬 혹은 동시에 사용할 때 유용 !! 
   - Step안에 Tasklet이 있고, 이 Tasklet은 멤버변수와 멤버 변수를 변경하는 로직이 있다 가정
-  - 이 경우 @StepScope없이 Step을 병렬로 수행시킨다면 서로다른 Step에서 하나의 Tasklet을 두고 마구잡이로 상태를 변경하려 할 것
-  - 왜냐면 Tasklet이 기본 scope인 싱글톤으로 생성되기 때문
+  - 이 경우 @StepScope없이 Step을 병렬로 수행시킨다면 서로다른 Step에서 하나의 Tasklet(싱글톤)을 두고 마구잡이로 상태를 변경하려 할 것
+  - (왜냐면 Tasklet이 기본 scope인 싱글톤으로 생성되기 때문)
   - @StepScope가 있다면 가각의 Step에서 별도의 Tasklet을 생성하고 관리하기 때문에 서로의 상태를 침범할 일 없음
   
+### Job Parameter
+> Spring Batch가 실행될 때 외부에서 받을 수 있는 파라미터
+
+Job Parameters는 @Value를 통해서 주입 가능
+Job Parameters는 Step이나, Tasklet, Reader 등 Batch 컴포넌트 Bean의 생성시점에 호출 가능
+-> 정확히는 **Scope Bean을 생성할 때**만 가능
+> 즉, @StepScope, @JobScope Bean을 생성할 때만 Job Parameters가 생성되기 때문에 사용 가능
+
+> JobParameters를 사용하기 위해선 꼭 @StepScope, @JobScope로 Bean을 생성해야한다!!!!
+
+#### Job Parameter 사용이유
+- 시스템 변수를 대신 사용할 수도 있지 않나?
+- 시스템 변수 사용한다면, Spring Batch의 Job Parameter 관련 기능 사용 못함
+  - Spring Batch는 같은 JobParameter로 같은 Job을 두 번 실행하지 않음 (Job Parameter로 Job Instance 구분)
+- 시스템 변수 사용시 Command Line이 아닌 다른 방법으로 Job 실행하기 어려움
+  - 만약 실행해야한다면 **전역 상태(시스템 변수 혹은 환경 변수)를 동적으로 계속해서 변경시킬 수 있도록 Spring Batch 구성해야함
+  - 동시에 여러 Job을 실행하려는 경우 또는 테스트코드로 Job을 실행해야할 때 문제 발생
+- Job Parameter 못쓴다면 위에서 언급한 Late Binding을 못하게 됨
