@@ -105,3 +105,44 @@ Spring Batch 는 Spring의 특성을 그대로 가져왔음
 
 ---
 
+# Spring Batch - JobParameter와 Scope
+
+출처 : https://jojoldu.tistory.com/330?category=902551 
+
+Spring Batch의 경우 외부 혹은 내부에서 파라미터를 받아 여러 Batch 컴포넌트에서 사용할 수 있게 지원
+이 파라미터를 **Job Parameter**라고 한다.
+
+Job Parameter를 사용하기 위해서는 항상 **Spring Batch 전용 Scope**를 선언해야한다!
+
+- @StepScope
+- @JobScope
+
+크게 위와 같이 2가지가 존재, 아래와 같이 SpEL로 선언해서 사용하면 된다. (Value애노테이션은 스프링 프레임워크 애노테이션이다 lombok 아님!)
+
+```@Value("#{jobParameters[파라미터명]}")```
+
+- @JobScope : Step 선언문에서 사용가능
+- @StepScope : Tasklet이나 ItemReader, ItemWriter, ItemProcessor에서 사용가능
+
+###  @StepScope & @JobScope 소개
+- Spring Batch는 @StepScope와 @JobScope라는 특별한 Bean Scope를 지원
+- Spring Bean의 기본 Scope는 Singleton이다.
+- 그러나 Spring Batch 컴포넌트 (Tasklet, ItemReader, ItemWriter, ItemProcessor 등)에 @StepScope를 사용하게 되면, Spring Batch가 Spring 컨테이너를 통해 지정된 **Step의 실행시점에 해당 컴포넌트를 Spring Bean으로 생성**
+- 마찬가지로 @JobScope는 **Job 실행시점**에 Bean이 생성된다.
+- 즉, **Bean의 생성 시점을 지정된 Scope가 실행되는 시점으로 지연**시킨다.
+
+> 어떻게 보면 MVC의 request scope와 비슷할 수 있다.
+> 
+> request scope가 request가 왔을 때 생성되고, response를 반환하면 삭제되는 것처럼,
+> 
+> JobScope, StepScope 역시 Job이 실행되고 끝날때, Step이 실행되고 끝날 때 생성/삭제가 이루어진다고 보면 된다.
+
+#### Bean의 생성시점을 애플리케이션 실행 시점이 아닌, Step혹은 Job의 실행시점으로 지연시키면 얻는 장점은?
+- JobParameter의 Late Binding이 가능
+  - 꼭 Application 실행시점이 아니더라도, Controller나 Service와 같은 **비즈니스 로직 처리단계에서 JobParameter를 할당** 가능
+- 동일한 컴포넌트를 병렬 혹은 동시에 사용할 때 유용
+  - Step안에 Tasklet이 있고, 이 Tasklet은 멤버변수와 멤버 변수를 변경하는 로직이 있다 가정
+  - 이 경우 @StepScope없이 Step을 병렬로 수행시킨다면 서로다른 Step에서 하나의 Tasklet을 두고 마구잡이로 상태를 변경하려 할 것
+  - 왜냐면 Tasklet이 기본 scope인 싱글톤으로 생성되기 때문
+  - @StepScope가 있다면 가각의 Step에서 별도의 Tasklet을 생성하고 관리하기 때문에 서로의 상태를 침범할 일 없음
+  
