@@ -19,10 +19,30 @@ repositories {
 }
 
 dependencies {
+    //mahout 의존성
+//    implementation group: 'org.apache.mahout', name: 'mahout-core', version: '0.9'
+//    implementation group: 'org.apache.mahout', name: 'mahout-math', version: '0.13.0'
+//    implementation group: 'org.apache.mahout', name: 'mahout-integration', version: '0.13.0'
+//    implementation "com.google.guava:guava:30.1-jre"
+//    compile("org.springframework.boot:spring-boot-starter-web") {
+//        exclude module: "spring-boot-starter-logging"
+//        exclude module: "logback-classic"
+//    }
+
+    compile('org.apache.mahout:mahout-integration:0.13.0') {
+        exclude group: 'org.apache.hbase'
+        exclude group: 'org.apache.hadoop'
+        exclude group: 'org.apache.lucene'
+        exclude group: 'org.apache.solr'
+        exclude group: 'com.thoughtworks.xstream'
+        exclude group: 'commons-cli'
+        exclude group: 'log4j', module: 'log4j'
+        exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+    }
+
     implementation 'org.springframework.boot:spring-boot-starter-batch'
     implementation 'org.elasticsearch:elasticsearch:6.4.3'
     implementation 'org.elasticsearch.client:elasticsearch-rest-high-level-client:6.4.3'
-//    implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'com.h2database:h2'
@@ -31,6 +51,12 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.batch:spring-batch-test'
 }
+//
+//configurations {
+//    all {
+//        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+//    }
+//}
 
 test {
     useJUnitPlatform()
